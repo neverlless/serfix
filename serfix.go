@@ -133,7 +133,7 @@ func main() {
 			line, isPrefix, err = r.ReadLine()
 		}
 		if isPrefix {
-			fmt.Println(errors.New("buffer size too small"))
+			fmt.Println(errors.New("serfix: buffer size too small"))
 			return
 		}
 		if err != io.EOF {
