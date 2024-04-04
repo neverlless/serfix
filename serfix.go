@@ -153,8 +153,8 @@ func processStdin() {
 
 func Replace(matches string) string {
 	parts := re.FindStringSubmatch(matches)
-	str_len := len(parts[4]) - len(esc.FindAllString(parts[4], -1))
-	return fmt.Sprintf("%s%d%s%s%s", parts[1], str_len, parts[3], parts[4], parts[5])
+	stringLength := len(parts[4]) - len(esc.FindAllString(parts[4], -1))
+	return fmt.Sprintf("%s%d%s%s%s", parts[1], stringLength, parts[3], parts[4], parts[5])
 }
 
 func PrintUsage() {
