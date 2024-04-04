@@ -17,22 +17,22 @@ const (
 	readBuffer     = 2 * 2 * 2 * 2 * 1024 * 1024
 )
 
-var helpPtr = flag.Bool("help", false, helpFlagUsage)
-var forcePtr = flag.Bool("force", false, forceFlagUsage)
-var counter int = 0
-var lexer = regexp.MustCompile(`s:\d+:\\?\".*?\\?\";`)
-var re = regexp.MustCompile(`(s:)(\d+)(:\\?\")(.*?)(\\?\";)`)
-var esc = regexp.MustCompile(`(\\"|\\'|\\\\|\\a|\\b|\\f|\\n|\\r|\\s|\\t|\\v|\\0)`)
+var (
+	helpPtr  = flag.Bool("help", false, helpFlagUsage)
+	forcePtr = flag.Bool("force", false, forceFlagUsage)
+	counter  int
+	lexer    = regexp.MustCompile(`s:\d+:\\?\".*?\\?\";`)
+	re       = regexp.MustCompile(`(s:)(\d+)(:\\?\")(.*?)(\\?\";)`)
+	esc      = regexp.MustCompile(`(\\"|\\'|\\\\|\\a|\\b|\\f|\\n|\\r|\\s|\\t|\\v|\\0)`)
+)
 
 func init() {
-	// Short flags too
 	flag.BoolVar(helpPtr, "h", false, helpFlagUsage)
 	flag.BoolVar(forcePtr, "f", false, forceFlagUsage)
 }
 
 func main() {
-	numCPU := runtime.NumCPU()
-	runtime.GOMAXPROCS(numCPU)
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	flag.Parse()
 	args := flag.Args()
@@ -58,7 +58,7 @@ func processFile(args []string) {
 	filename := args[0]
 	infile, err := os.Open(filename)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error opening input file:", err)
 		return
 	}
 	defer infile.Close()
@@ -71,24 +71,24 @@ func processFile(args []string) {
 	tempfilename := outfilename + "~"
 	tempfile, err := os.Create(tempfilename)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error creating temporary file:", err)
 		return
 	}
 	defer tempfile.Close()
 
 	if err := processLines(infile, tempfile); err != nil {
-		fmt.Println(err)
+		fmt.Println("Error processing lines:", err)
 		return
 	}
 
 	if err := os.Rename(tempfilename, outfilename); err != nil {
-		fmt.Println(err)
+		fmt.Println("Error renaming file:", err)
 		return
 	}
 
 	if len(args) == 1 {
 		if err := os.Remove(filename); err != nil {
-			fmt.Println(err)
+			fmt.Println("Error removing original file:", err)
 			return
 		}
 	}
@@ -134,7 +134,7 @@ func processStdin() {
 	for {
 		line, isPrefix, err := r.ReadLine()
 		if err != nil && err != io.EOF {
-			fmt.Println(err)
+			fmt.Println("Error reading input:", err)
 			return
 		}
 
