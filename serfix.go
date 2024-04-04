@@ -34,9 +34,7 @@ func main() {
 	numCPU := runtime.NumCPU()
 	runtime.GOMAXPROCS(numCPU)
 
-	// Handle flags
 	flag.Parse()
-
 	args := flag.Args()
 
 	if *helpPtr {
@@ -45,101 +43,87 @@ func main() {
 	}
 
 	if len(args) > 0 {
-		filename := fmt.Sprintf("%s", args[0])
-		// Open provided file
-		infile, err := os.Open(filename)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		// close provided file on exit and check for its returned error
-		defer infile.Close()
+		processFile(args)
+	} else {
+		processStdin()
+	}
+}
 
-		newDestination := false
-		outfilename := filename
-		tempfilename := fmt.Sprintf("%s~", outfilename)
-		if len(args) > 1 {
-			newDestination = true
-			outfilename = fmt.Sprintf("%s", args[1])
-			tempfilename = fmt.Sprintf("%s~", outfilename)
-			if !*forcePtr {
-				if _, err := os.Stat(outfilename); err == nil {
-					fmt.Println("Destination file already exists, aborting serfix.")
-					return
-				}
-			}
-		}
+func processFile(args []string) {
+	filename := args[0]
+	infile, err := os.Open(filename)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer infile.Close()
 
-		// Open out file
-		tempfile, err := os.Create(tempfilename)
-		if err != nil {
-			println(err)
-		}
-		// close out file
-		defer tempfile.Close()
-
-		r := bufio.NewReaderSize(infile, readBuffer)
-
-		line, err := r.ReadString('\n')
-		for err == nil {
-			tempfile.WriteString(lexer.ReplaceAllStringFunc(string(line), Replace))
-
-			line, err = r.ReadString('\n')
-		}
-		if err != io.EOF {
-			fmt.Println(err)
-			return
-		}
-
-		// Close the in/out files
-		if err := tempfile.Close(); err != nil {
-			fmt.Println(err)
-			return
-		}
-		if err := infile.Close(); err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		if !newDestination {
-			// Remove original file
-			if err := os.Remove(filename); err != nil {
-				fmt.Println(err)
+	outfilename := filename
+	if len(args) > 1 {
+		outfilename = args[1]
+		if !*forcePtr {
+			if _, err := os.Stat(outfilename); err == nil {
+				fmt.Println("Destination file already exists, aborting serfix.")
 				return
 			}
-		} else {
-			// If destination exists and force flag is used, remove destination file
-			if _, err := os.Stat(outfilename); err == nil {
-				if !*forcePtr {
-					if err := os.Remove(outfilename); err != nil {
-						fmt.Println(err)
-						return
-					}
-				}
-			}
 		}
-		if err := os.Rename(tempfilename, outfilename); err != nil {
+	}
+
+	tempfilename := outfilename + "~"
+	tempfile, err := os.Create(tempfilename)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer tempfile.Close()
+
+	r := bufio.NewReaderSize(infile, readBuffer)
+	for {
+		line, err := r.ReadString('\n')
+		if err != nil && err != io.EOF {
 			fmt.Println(err)
 			return
 		}
 
-	} else {
-		r := bufio.NewReaderSize(os.Stdin, readBuffer)
-
-		line, isPrefix, err := r.ReadLine()
-		for err == nil && !isPrefix {
-			fmt.Println(lexer.ReplaceAllStringFunc(string(line), Replace))
-
-			line, isPrefix, err = r.ReadLine()
+		if err == io.EOF {
+			break
 		}
+
+		tempfile.WriteString(lexer.ReplaceAllStringFunc(string(line), Replace))
+	}
+
+	if err := os.Rename(tempfilename, outfilename); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if len(args) == 1 {
+		if err := os.Remove(filename); err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+}
+
+func processStdin() {
+	r := bufio.NewReaderSize(os.Stdin, readBuffer)
+	for {
+		line, isPrefix, err := r.ReadLine()
+		if err != nil && err != io.EOF {
+			fmt.Println(err)
+			return
+		}
+
 		if isPrefix {
 			fmt.Println(errors.New("serfix: buffer size too small"))
 			return
 		}
-		if err != io.EOF {
-			fmt.Println(err)
-			return
+
+		if err == io.EOF {
+			break
 		}
+
+		fmt.Println(lexer.ReplaceAllStringFunc(string(line), Replace))
 	}
 }
 
