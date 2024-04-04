@@ -96,8 +96,11 @@ func processFile(args []string) {
 
 func getOutFilename(args []string) string {
 	if len(args) < 2 {
-		fmt.Println("No output file provided")
-		return ""
+		if len(args) == 1 && !*forcePtr {
+			fmt.Println("No output file provided")
+			return ""
+		}
+		return args[0]
 	}
 
 	outfilename := args[1]
