@@ -50,6 +50,11 @@ func main() {
 }
 
 func processFile(args []string) {
+	if len(args) < 1 {
+		fmt.Println("No input file provided")
+		return
+	}
+
 	filename := args[0]
 	infile, err := os.Open(filename)
 	if err != nil {
@@ -58,15 +63,9 @@ func processFile(args []string) {
 	}
 	defer infile.Close()
 
-	outfilename := filename
-	if len(args) > 1 {
-		outfilename = args[1]
-		if !*forcePtr {
-			if _, err := os.Stat(outfilename); err == nil {
-				fmt.Println("Destination file already exists, aborting serfix.")
-				return
-			}
-		}
+	outfilename := getOutFilename(args)
+	if outfilename == "" {
+		return
 	}
 
 	tempfilename := outfilename + "~"
@@ -77,19 +76,9 @@ func processFile(args []string) {
 	}
 	defer tempfile.Close()
 
-	r := bufio.NewReaderSize(infile, readBuffer)
-	for {
-		line, err := r.ReadString('\n')
-		if err != nil && err != io.EOF {
-			fmt.Println(err)
-			return
-		}
-
-		if err == io.EOF {
-			break
-		}
-
-		tempfile.WriteString(lexer.ReplaceAllStringFunc(string(line), Replace))
+	if err := processLines(infile, tempfile); err != nil {
+		fmt.Println(err)
+		return
 	}
 
 	if err := os.Rename(tempfilename, outfilename); err != nil {
@@ -103,6 +92,41 @@ func processFile(args []string) {
 			return
 		}
 	}
+}
+
+func getOutFilename(args []string) string {
+	if len(args) < 2 {
+		fmt.Println("No output file provided")
+		return ""
+	}
+
+	outfilename := args[1]
+	if !*forcePtr {
+		if _, err := os.Stat(outfilename); err == nil {
+			fmt.Println("Destination file already exists, aborting serfix.")
+			return ""
+		}
+	}
+	return outfilename
+}
+
+func processLines(infile *os.File, tempfile *os.File) error {
+	r := bufio.NewReaderSize(infile, readBuffer)
+	for {
+		line, err := r.ReadString('\n')
+		if err != nil && err != io.EOF {
+			return err
+		}
+
+		if err == io.EOF {
+			break
+		}
+
+		if _, err := tempfile.WriteString(lexer.ReplaceAllStringFunc(string(line), Replace)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func processStdin() {
