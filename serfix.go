@@ -20,7 +20,6 @@ const (
 var (
 	helpPtr  = flag.Bool("help", false, helpFlagUsage)
 	forcePtr = flag.Bool("force", false, forceFlagUsage)
-	counter  int
 	lexer    = regexp.MustCompile(`s:\d+:\\?\".*?\\?\";`)
 	re       = regexp.MustCompile(`(s:)(\d+)(:\\?\")(.*?)(\\?\";)`)
 	esc      = regexp.MustCompile(`(\\"|\\'|\\\\|\\a|\\b|\\f|\\n|\\r|\\s|\\t|\\v|\\0)`)
